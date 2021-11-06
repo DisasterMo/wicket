@@ -74,6 +74,7 @@
 
 				if (WWS.pageId !== false) {
 					url += '?pageId=' + encodeURIComponent(WWS.pageId);
+					url += '&pageClass=' + encodeURIComponent(WWS.pageClass);
 				} else if (WWS.resourceName) {
 					url += '?resourceName=' + encodeURIComponent(WWS.resourceName);
 					if (WWS.connectionToken) {

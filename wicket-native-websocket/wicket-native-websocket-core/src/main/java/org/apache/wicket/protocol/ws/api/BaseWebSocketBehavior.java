@@ -128,6 +128,7 @@ public class BaseWebSocketBehavior extends Behavior
 		{
 			int pageId = component.getPage().getPageId();
 			variables.put("pageId", pageId);
+			variables.put("pageClass", component.getPage().getClass().getName());
 			variables.put("resourceName", "");
 			variables.put("connectionToken", "");
 		}
@@ -136,6 +137,7 @@ public class BaseWebSocketBehavior extends Behavior
 			variables.put("resourceName", resourceName);
 			variables.put("connectionToken", connectionToken);
 			variables.put("pageId", false);
+			variables.put("pageClass", "");
 		}
 
 		WebSocketSettings webSocketSettings = WebSocketSettings.Holder.get(component.getApplication());

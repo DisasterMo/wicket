@@ -18,10 +18,11 @@ package org.apache.wicket.examples.websocket;
 
 import org.apache.wicket.examples.WicketExamplePage;
 import org.apache.wicket.examples.websocket.progress.ProgressBarTogglePanel;
+import org.apache.wicket.examples.websocket.progress.ProgressUpdater;
 import org.apache.wicket.protocol.https.RequireHttps;
 
 @RequireHttps
-public class WebSocketPushUpdateProgressDemoPage extends WicketExamplePage
+public class WebSocketPushUpdateProgressDemoPage extends WicketExamplePage implements ProgressUpdater.ITaskProgressListener
 {
 	public WebSocketPushUpdateProgressDemoPage()
 	{

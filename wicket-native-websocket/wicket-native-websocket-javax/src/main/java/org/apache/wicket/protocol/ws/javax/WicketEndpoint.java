@@ -47,6 +47,7 @@ public class WicketEndpoint extends Endpoint
 	 * The name of the request parameter that holds the application name
 	 */
 	private static final String WICKET_APP_PARAM_NAME = "wicket-app-name";
+	private static final String WICKET_SESSION_ID = "jsessionid";
 
 	private final AtomicBoolean applicationDestroyed = new AtomicBoolean(false);
 
@@ -56,6 +57,7 @@ public class WicketEndpoint extends Endpoint
 	public void onOpen(Session session, EndpointConfig endpointConfig)
 	{
 		String appName = getApplicationName(session);
+		session.getId();
 
 		WebApplication app = (WebApplication) WebApplication.get(appName);
 		app.getApplicationListeners().add(new ApplicationListener(applicationDestroyed));
@@ -123,7 +125,6 @@ public class WicketEndpoint extends Endpoint
 	{
 		String appName = null;
 
-		@SuppressWarnings("unchecked")
 		Map<String, List<String>> parameters = session.getRequestParameterMap();
 		if (parameters != null)
 		{

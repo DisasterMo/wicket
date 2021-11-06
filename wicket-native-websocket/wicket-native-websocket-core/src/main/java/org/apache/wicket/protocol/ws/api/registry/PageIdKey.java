@@ -16,6 +16,9 @@
  */
 package org.apache.wicket.protocol.ws.api.registry;
 
+import org.apache.wicket.Session;
+import org.apache.wicket.WicketRuntimeException;
+import org.apache.wicket.page.IManageablePage;
 import org.apache.wicket.util.lang.Args;
 
 /**
@@ -25,9 +28,30 @@ public class PageIdKey implements IKey
 {
 	private final Integer pageId;
 
+	private Class<? extends IManageablePage> pageClass;
+
 	public PageIdKey(Integer pageId)
 	{
+		this(pageId, null);
+	}
+
+	public PageIdKey(Integer pageId, String pageClass)
+	{
 		this.pageId = Args.notNull(pageId, "pageId");
+		Args.notNull(pageClass, "pageClass");
+		try {
+			this.pageClass = (Class<IManageablePage>)Thread.currentThread().getContextClassLoader().loadClass(pageClass);
+		} catch (ClassNotFoundException e) {
+			//throw new WicketRuntimeException(e);
+		}
+	}
+
+	/**
+	 * @return returns the page class.
+	 */
+	public Class<? extends IManageablePage> getPageClass()
+	{
+		return pageClass;
 	}
 
 	@Override

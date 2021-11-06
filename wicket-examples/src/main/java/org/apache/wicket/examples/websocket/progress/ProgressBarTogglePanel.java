@@ -22,6 +22,7 @@ import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.event.IEvent;
 import org.apache.wicket.examples.websocket.JSR356Application;
+import org.apache.wicket.examples.websocket.JSR356Session;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
@@ -34,7 +35,7 @@ public class ProgressBarTogglePanel extends Panel
 
     private int progress = 0;
     private boolean showProgress = true;
-    private ProgressUpdater.ProgressUpdateTask progressUpdateTask;
+
 
     public ProgressBarTogglePanel(String id)
     {
@@ -46,7 +47,7 @@ public class ProgressBarTogglePanel extends Panel
         {
             @Override
             protected void onConnect(ConnectedMessage message) {
-                progressUpdateTask = ProgressBarTogglePanel.startProgressTask(message);
+
             }
         });
 
@@ -65,33 +66,25 @@ public class ProgressBarTogglePanel extends Panel
             @Override
             public void onClick(AjaxRequestTarget target)
             {
-                if (progressUpdateTask.isRunning() && !progressUpdateTask.isCanceled())
+                ProgressUpdater.ProgressUpdateTask progressUpdateTask = JSR356Session.getInstance().getProgressUpdateTask();
+                if (progressUpdateTask != null && progressUpdateTask.isRunning() && !progressUpdateTask.isCanceled())
                 {
                     progressUpdateTask.cancel();
                 }
                 else
                 {
-                    ScheduledExecutorService service = JSR356Application.get().getScheduledExecutorService();
-                    ProgressUpdater.restart(progressUpdateTask, service);
+                    JSR356Session.getInstance().startTask();
                 }
                 target.add(ProgressBarTogglePanel.this);
             }
-        }.setBody(new IModel<String>()
-        {
-            @Override
-            public String getObject()
-            {
-                return progressUpdateTask != null && progressUpdateTask.isRunning() && !progressUpdateTask.isCanceled() ? "Cancel task" : "Restart task";
-            }
+        }.setBody((IModel<String>) () -> {
+            ProgressUpdater.ProgressUpdateTask progressUpdateTask = JSR356Session.getInstance().getProgressUpdateTask();
+            return progressUpdateTask != null && progressUpdateTask.isRunning() && !progressUpdateTask.isCanceled() ? "Cancel task" : "Restart task";
         }));
 
-        add(new Label("progressBar", new IModel<String>()
-        {
-            @Override
-            public String getObject()
-            {
-                return progressUpdateTask != null && progressUpdateTask.isRunning() ? "Background Task is " + progress + "% completed" : "No task is running";
-            }
+        add(new Label("progressBar", (IModel<String>) () -> {
+            ProgressUpdater.ProgressUpdateTask progressUpdateTask = JSR356Session.getInstance().getProgressUpdateTask();
+            return progressUpdateTask != null && progressUpdateTask.isRunning() ? "Background Task is " + progress + "% completed" : "No task is running";
         })
         {
             @Override
@@ -103,11 +96,6 @@ public class ProgressBarTogglePanel extends Panel
         });
     }
 
-    public static ProgressUpdater.ProgressUpdateTask startProgressTask(ConnectedMessage message)
-    {
-        ScheduledExecutorService service = JSR356Application.get().getScheduledExecutorService();
-        return ProgressUpdater.start(message, service);
-    }
 
     @Override
     public void onEvent(IEvent<?> event)
@@ -119,6 +107,11 @@ public class ProgressBarTogglePanel extends Panel
             {
                 ProgressUpdater.ProgressUpdate progressUpdate = (ProgressUpdater.ProgressUpdate)wsEvent.getMessage();
                 progress = progressUpdate.getProgress();
+                wsEvent.getHandler().add(this);
+            }
+            else if (wsEvent.getMessage() instanceof ProgressUpdater.TaskCanceled)
+            {
+                // task was canceled
                 wsEvent.getHandler().add(this);
             }
         }

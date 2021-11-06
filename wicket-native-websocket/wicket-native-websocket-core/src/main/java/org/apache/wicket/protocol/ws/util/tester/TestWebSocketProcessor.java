@@ -84,6 +84,7 @@ abstract class TestWebSocketProcessor extends AbstractWebSocketProcessor
 		Args.notNull(page, "page");
 		MockHttpServletRequest request = createRequest(wicketTester);
 		request.addParameter("pageId", page.getId());
+		request.addParameter("pageClass", page.getClass().getName());
 		return request;
 	}
 

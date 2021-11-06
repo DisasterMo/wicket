@@ -97,7 +97,13 @@ public class WebSocketRequestHandler extends AbstractPartialPageRequestHandler i
 		}
 	}
 
-
+	/**
+	 * @return if true then EMPTY partial updates will be ignored.
+	 */
+	protected boolean pushOnEmptyUpdate()
+	{
+		return true;
+	}
 
 	protected PartialPageUpdate getUpdate() {
 		if (update == null) {
@@ -129,7 +135,11 @@ public class WebSocketRequestHandler extends AbstractPartialPageRequestHandler i
 	{
 		if (update != null)
 		{
-			update.writeTo(requestCycle.getResponse(), "UTF-8");
+			// if the update is not empty or empty updates will be pushed anyway then write to response.
+			if (pushOnEmptyUpdate() || !update.isEmpty())
+			{
+				update.writeTo(requestCycle.getResponse(), "UTF-8");
+			}
 		}
 	}
 

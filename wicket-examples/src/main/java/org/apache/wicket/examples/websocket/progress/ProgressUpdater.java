@@ -28,6 +28,7 @@ import org.apache.wicket.protocol.ws.api.message.ConnectedMessage;
 import org.apache.wicket.protocol.ws.api.message.IWebSocketPushMessage;
 import org.apache.wicket.protocol.ws.api.registry.IKey;
 import org.apache.wicket.protocol.ws.api.registry.IWebSocketConnectionRegistry;
+import org.apache.wicket.protocol.ws.api.registry.PageIdKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,18 +37,29 @@ import org.slf4j.LoggerFactory;
  */
 public class ProgressUpdater
 {
+	/**
+	 * Marks a page as listening to task progress.
+	 */
+	public interface ITaskProgressListener {
+
+	}
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProgressUpdater.class);
 
-	public static ProgressUpdateTask start(ConnectedMessage message, ScheduledExecutorService scheduledExecutorService)
+	public static ProgressUpdateTask start(Application application, String session, ScheduledExecutorService scheduledExecutorService)
 	{
 		// create an asynchronous task that will write the data to the client
-		ProgressUpdateTask progressUpdateTask = new ProgressUpdateTask(message.getApplication(), message.getSessionId(), message.getKey());
+		ProgressUpdateTask progressUpdateTask = new ProgressUpdateTask(application, session);
 		scheduledExecutorService.schedule(progressUpdateTask, 1, TimeUnit.SECONDS);
 		return progressUpdateTask;
 	}
 
-	public static void restart(ProgressUpdateTask progressUpdateTask, ScheduledExecutorService scheduledExecutorService) {
-		scheduledExecutorService.schedule(progressUpdateTask, 1, TimeUnit.SECONDS);
+	public static class TaskCanceled implements IWebSocketPushMessage
+	{
+
+		public TaskCanceled()
+		{
+		}
 	}
 
 	/**
@@ -80,16 +92,14 @@ public class ProgressUpdater
 		 */
 		private final String applicationName;
 		private final String sessionId;
-		private final IKey key;
 
 		private boolean canceled = false;
 		private boolean running = false;
 
-		private ProgressUpdateTask(Application application, String sessionId, IKey key)
+		private ProgressUpdateTask(Application application, String sessionId)
 		{
 			this.applicationName = application.getName();
 			this.sessionId = sessionId;
-			this.key = key;
 		}
 
 		@Override
@@ -98,32 +108,26 @@ public class ProgressUpdater
 			running = true;
 			Application application = Application.get(applicationName);
 			WebSocketSettings webSocketSettings = WebSocketSettings.Holder.get(application);
-			IWebSocketConnectionRegistry webSocketConnectionRegistry = webSocketSettings.getConnectionRegistry();
 
 			int progress = 0;
 
 			while (progress <= 100)
 			{
-				IWebSocketConnection connection = webSocketConnectionRegistry.getConnection(application, sessionId, key);
 				try
 				{
-					if (connection == null || !connection.isOpen())
-					{
-						running = false;
-						// stop if the web socket connection is closed
-						return;
-					}
+					WebSocketPushBroadcaster broadcaster =
+							new WebSocketPushBroadcaster(webSocketSettings.getConnectionRegistry());
 
 					if (canceled)
 					{
 						canceled = false;
 						running = false;
+						broadcaster.broadcastAllMatchingFilter(application, (sessionId, key) ->
+								ProgressUpdateTask.this.sessionId.equals(sessionId) && key instanceof PageIdKey && ITaskProgressListener.class.isAssignableFrom(((PageIdKey) key).getPageClass()), new TaskCanceled());
 						return;
 					}
-
-					WebSocketPushBroadcaster broadcaster =
-							new WebSocketPushBroadcaster(webSocketSettings.getConnectionRegistry());
-					broadcaster.broadcast(new ConnectedMessage(application, sessionId, key), new ProgressUpdate(progress));
+					broadcaster.broadcastAllMatchingFilter(application, (sessionId, key) ->
+							ProgressUpdateTask.this.sessionId.equals(sessionId) && key instanceof PageIdKey && ITaskProgressListener.class.isAssignableFrom(((PageIdKey) key).getPageClass()), new ProgressUpdate(progress));
 
 					// sleep for a while to simulate work
 					TimeUnit.SECONDS.sleep(1);

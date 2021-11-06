@@ -29,6 +29,17 @@ import org.apache.wicket.protocol.ws.api.IWebSocketConnection;
 public interface IWebSocketConnectionRegistry
 {
 	/**
+	 * Interface allowing to filter web-sockets connection. This could be used for use cases like the
+	 * following: you
+	 */
+	interface IConnectionsFilter
+	{
+
+		boolean acceptConnection(String sessionId, IKey key);
+
+	}
+
+	/**
 	 * @param application
 	 *      the web application to look in
 	 * @param sessionId
@@ -44,9 +55,21 @@ public interface IWebSocketConnectionRegistry
 	 *            the web application to look in
 	 * @param sessionId
 	 *            the http session id
-	 * @return collection of web socket connection used by a client with the given session id
+	 * @return collection of web socket connections used by a client with the given session id
 	 */
 	Collection<IWebSocketConnection> getConnections(Application application, String sessionId);
+
+
+	/**
+	 *
+	 * @param application
+	 * 			 the web application to look in
+	 * @param connectionsFilter
+	 * 			the {@link org.apache.wicket.protocol.ws.api.registry.IWebSocketConnectionRegistry.IConnectionsFilter}
+	 *
+	 * @return collection of web socket connections that match certain filter
+	 */
+	Collection<IWebSocketConnection> getConnections(Application application, IConnectionsFilter connectionsFilter);
 
 
 	/**
